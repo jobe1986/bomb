@@ -130,6 +130,7 @@ SERVER                  { return SERVER;       }
 TARGET_IP               { return TARGET_IP;    }
 TARGET_PORT             { return TARGET_PORT;  }
 TARGET_STRING           { return TARGET_STRING;}
+TARGET_URL              { return TARGET_URL;   }
 TIMEOUT                 { return TIMEOUT;      }
 TYPE                    { return TYPE;         }
 USER                    { return USER;         }
@@ -144,6 +145,11 @@ HTTP                    {
 
 HTTPPOST                {
                           yylval.number = OPM_TYPE_HTTPPOST;
+                          return PROTOCOLTYPE;
+                        }
+
+HTTPGET                 {
+                          yylval.number = OPM_TYPE_HTTPGET;
                           return PROTOCOLTYPE;
                         }
 

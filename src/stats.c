@@ -77,6 +77,7 @@ static struct StatsHash STATS_PROXIES[] =
    {
       {OPM_TYPE_HTTP,     0, "HTTP"     },
       {OPM_TYPE_HTTPPOST, 0, "HTTPPOST" },
+      {OPM_TYPE_HTTPGET,  0, "HTTPGET"  },
       {OPM_TYPE_SOCKS4,   0, "SOCKS4"   },
       {OPM_TYPE_SOCKS5,   0, "SOCKS5"   },
       {OPM_TYPE_ROUTER,   0, "ROUTER"   },

@@ -178,6 +178,7 @@ char *scan_gettype(int protocol)
       {
          { OPM_TYPE_HTTP,     "HTTP"     },
          { OPM_TYPE_HTTPPOST, "HTTPPOST" },
+         { OPM_TYPE_HTTPGET,  "HTTPGET"  },
          { OPM_TYPE_SOCKS4,   "SOCKS4"   },
          { OPM_TYPE_SOCKS5,   "SOCKS5"   },
          { OPM_TYPE_WINGATE,  "WINGATE"  },
@@ -238,6 +239,7 @@ void scan_init()
       opm_config(scs->scanner, OPM_CONFIG_FD_LIMIT, &(sc->fd));
       opm_config(scs->scanner, OPM_CONFIG_SCAN_IP, sc->target_ip);
       opm_config(scs->scanner, OPM_CONFIG_SCAN_PORT, &(sc->target_port));
+      opm_config(scs->scanner, OPM_CONFIG_SCAN_URL, sc->target_url);
       opm_config(scs->scanner, OPM_CONFIG_TIMEOUT, &(sc->timeout));
       opm_config(scs->scanner, OPM_CONFIG_MAX_READ, &(sc->max_read));
       opm_config(scs->scanner, OPM_CONFIG_BIND_IP, sc->vhost);
@@ -424,11 +426,13 @@ void scan_connect(char **user, char *msg)
                      break;
                   case OPM_ERR_BADADDR:
                      log_printf("OPM -> Bad address %s [%s].",
-                           ss->manual_target->name, ss->ip);
+                           (ss->manual_target ? ss->manual_target->name :
+                           "(unknown)"), ss->ip);
                      break;
                   default:
                      log_printf("OPM -> Unknown error %s [%s].",
-                           ss->manual_target->name, ss->ip);
+                           (ss->manual_target ? ss->manual_target->name :
+                           "(unknown)"), ss->ip);
                      break;
                }
             }
@@ -996,9 +1000,6 @@ void scan_manual(char *param, struct ChannelConf *target)
    struct in_addr *addr;
    struct scan_struct *ss;
    struct scanner_struct *scs;
-   node_t *node;
-   char *buff;
-   char *exempt_mask;
 
    char *ip;
    char *scannername;
@@ -1062,18 +1063,6 @@ void scan_manual(char *param, struct ChannelConf *target)
    {
       irc_send("PRIVMSG %s :CHECK -> Checking '%s' for open proxies on all "
             "scanners", target->name, ip);
-   }
-
-   buff = malloc(5 + strlen(ip));
-   sprintf(buff, "adsfasf!zmalxnskcbjfvbghqpwowerituy@%s", ip);
-   free(buff);
-   LIST_FOREACH(node, ExemptItem->masks->head)
-   {
-        exempt_mask = (char *) node->data;
-        if(match(exempt_mask, buff))
-        {
-            irc_send("PRIVMSG %s :NOTE: That IP matches an exeption.", target->name);
-        }
    }
 
    if(LIST_SIZE(OpmItem->blacklists) > 0)

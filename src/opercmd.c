@@ -54,7 +54,6 @@ static void command_free(struct Command *);
 static void cmd_check(char *, char *, struct ChannelConf *);
 static void cmd_stat(char *, char *, struct ChannelConf *);
 static void cmd_fdstat(char *, char *, struct ChannelConf *);
-static void cmd_exempt(char *, char *, struct ChannelConf *);
 #if 0
 static void cmd_op(char *, char *, struct ChannelConf *);
 #endif
@@ -67,7 +66,6 @@ static struct OperCommandHash COMMAND_TABLE[] =
       {"STATS",  cmd_stat   },
       {"STATUS", cmd_stat   },
       {"FDSTAT", cmd_fdstat },
-      {"EXEMPT", cmd_exempt },
 /*    {"OP",     cmd_op     } */
    };
 
@@ -309,7 +307,10 @@ void command_userhost(char *reply)
       oper = 1;
 
    /* Null terminate it so tmp = the oper's nick */
-   *(--tmp) = '\0';
+  if(oper) 
+     *(--tmp) = '\0';
+  else
+     *(tmp) = '\0';
 
    /* Find any queued commands that match this user */
    LIST_FOREACH_SAFE(node, next, COMMANDS->head)
@@ -389,52 +390,6 @@ static void cmd_fdstat(char *param, char *source, struct ChannelConf *target)
    fdstats_output(target->name);
 }
 
-/* cmd_exempt
- *
- *   Add a mask to the excemption list.
- *
- *   Parameters:
- *   param: Parameters of the command
- *   source: irc_nick of user who requested the command
- *   target: channel command was sent to
- */
-
-static void cmd_exempt(char *param, char *source, struct ChannelConf *target)
-{
-    USE_VAR(param);
-    USE_VAR(source);
-
-    char *mask;
-    node_t *node;
-    char *exempt_mask;
-
-    if(param == NULL || *param == 0)
-    {
-        irc_send("PRIVMSG %s :exempt -> Invalid parameters.", target->name);
-        return;
-    }
-
-    mask = param;
-
-    LIST_FOREACH(node, ExemptItem->masks->head)
-    {
-        exempt_mask = (char *) node->data;
-        if(!strcmp(exempt_mask, mask))
-        {
-            irc_send("PRIVMSG %s :That mask is already in the list.", target->name);
-            return;
-        }
-    }
-
-    node = node_create(DupString(mask));
-
-    list_add(ExemptItem->masks, node);
-    irc_send("PRIVMSG %s :Mask '%s' added to exemption list.", target->name, mask);
-    if(OPT_DEBUG)
-    {
-        log_printf("CMD -> Added %s to exemption list.", mask);
-    }
-}
 
 /* cmd_op
  *

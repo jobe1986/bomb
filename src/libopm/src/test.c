@@ -32,7 +32,7 @@
 # include <unistd.h>
 #endif
 
-RCSID("$Id$");
+RCSID("$Id: test.c,v 1.36 2003/06/20 04:55:14 andy Exp $");
 
 #define ARRAY_SIZEOF(x) (sizeof(x) / sizeof((x)[0]))
 

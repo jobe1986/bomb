@@ -72,6 +72,7 @@ struct ScannerConf
 
    char   *target_ip;
    int     target_port;
+   char   *target_url;
 
    int     timeout;
    int     max_read;
@@ -111,7 +112,7 @@ struct BlacklistConf
 
 struct BlacklistReplyConf
 {
-   char  number;
+   unsigned char  number;
    char *type;
 };
 

@@ -49,7 +49,7 @@ along with this program; if not, write to the Free Software
 #include "irc.h"
 #include "stats.h"
 
-RCSID("$Id$");
+RCSID("$Id: dnsbl.c,v 1.30 2004/01/15 23:12:40 dg Exp $");
 
 /*
  * Work out the DNSBL zones and send the dns query

@@ -247,22 +247,3 @@ int libopm_proxy_httppost_write(OPM_T *scanner, OPM_SCAN_T *scan, OPM_CONNECTION
 
    return OPM_SUCCESS;
 }
-
-/*
- * HTTP GET Scanning
- *
- */
-
-int libopm_proxy_httpget_write(OPM_T *scanner, OPM_SCAN_T *scan, OPM_CONNECTION_T *conn)
-{
-    int len;
-    char *scan_url;
-
-    scan_url = (char *) libopm_config(scanner->config, OPM_CONFIG_SCAN_URL);
-
-    len = snprintf(SENDBUF, SENDBUFLEN, "GET %s HTTP/1.0\r\n\r\n",
-            scan_url);
-
-    send(conn->fd, SENDBUF, len, 0);
-    return(1);
-}

@@ -65,7 +65,7 @@ along with this program; if not, write to:
 #include "log.h"
 #include "defs.h"
 
-RCSID("$Id$");
+RCSID("$Id: negcache.c,v 1.5 2003/06/22 13:19:39 andy Exp $");
 
 extern unsigned int OPT_DEBUG;
 

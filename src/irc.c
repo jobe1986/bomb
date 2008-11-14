@@ -72,7 +72,7 @@
 #include "malloc.h"
 #include "main.h"
 
-RCSID("$Id$");
+RCSID("$Id: irc.c,v 1.27 2003/11/29 19:56:19 strtok Exp $");
 
 static void irc_init(void);
 static void irc_connect(void);
@@ -569,9 +569,6 @@ static void irc_parse(void)
    /* Store a copy of IRC_RAW for the handlers (for functions that need PROOF) */
    strcpy(msg, IRC_RAW);
 
-   /* Check against our regular expression */
-   do_regcheck(msg);
-
    /* parv[0] is always the source */
    if(IRC_RAW[0] == ':')
       parv[0] = IRC_RAW + 1;
@@ -916,7 +913,7 @@ static void m_privmsg(char **parv, unsigned int parc, char *msg, struct UserInfo
 {
    struct ChannelConf *channel;
    size_t nick_len;
-
+   
    if(source_p == NULL)
       return;
 
@@ -930,6 +927,9 @@ static void m_privmsg(char **parv, unsigned int parc, char *msg, struct UserInfo
    /* Only interested in privmsg to channels */
    if(parv[2][0] != '#' && parv[2][0] != '&')
       return;
+
+   /* Hand over to m_notice to parse via regex for mod-snoop support */
+   m_notice(parv, parc, msg, source_p);
 
    /* Get a target */
    if((channel = get_channel(parv[2])) == NULL)
@@ -978,79 +978,6 @@ static void m_ctcp(char **parv, unsigned int parc, char *msg, struct UserInfo *s
 
 
 
-static void do_regcheck(char *msg)
-{
-   static regex_t *preg = NULL;
-   regmatch_t pmatch[5];
-
-   static char errmsg[256];
-   int errnum, i;
-
-   char *user[4];
-
-   /* Compile the regular expression if it has not been already */
-   if(preg == NULL)
-   {
-      preg = MyMalloc(sizeof *preg);
-
-      if((errnum = regcomp(preg, IRCItem->connregex, REG_ICASE | REG_EXTENDED)) != 0)
-      {
-
-         regerror(errnum, preg, errmsg, 256);
-         log_printf("IRC REGEX -> Error when compiling regular expression");
-         log_printf("IRC REGEX -> %s", errmsg);
-
-         MyFree(preg);
-         preg = NULL;
-         return;
-      }
-   }
-
-   /* Match the expression against the possible connection notice */
-   if(regexec(preg, msg, 5, pmatch, 0) != 0)
-   {
-      return;
-   }
-
-   if(OPT_DEBUG > 0)
-      log_printf("IRC REGEX -> Regular expression caught connection notice. Parsing.");
-
-   if(pmatch[4].rm_so == -1)
-   {
-      log_printf("IRC REGEX -> pmatch[4].rm_so is -1 while parsing??? Aborting.");
-      return;
-   }
-
-   /*
-       Offsets for data in the connection notice:
-
-       NICKNAME: pmatch[1].rm_so  TO  pmatch[1].rm_eo 
-       USERNAME: pmatch[2].rm_so  TO  pmatch[2].rm_eo
-       HOSTNAME: pmatch[3].rm_so  TO  pmatch[3].rm_eo
-       IP      : pmatch[4].rm_so  TO  pmatch[4].rm_eo
-
-    */ 
-
-   for(i = 0; i < 4; i++)
-   {
-      user[i] = (msg + pmatch[i + 1].rm_so);
-      *(msg + pmatch[i + 1].rm_eo) = '\0';
-   }
-
-   if(OPT_DEBUG > 0)
-      log_printf("IRC REGEX -> Parsed %s!%s@%s [%s] from connection notice.",
-          user[0], user[1], user[2], user[3]);
-
-   /*FIXME (reminder) In the case of any rehash to the regex, preg MUST be freed first.
-       regfree(preg);
-   */
-
-   /* Pass this information off to scan.c */
-   scan_connect(user, msg);
-   /* Record the connect for stats purposes */
-   stats_connect();
-}
-
 
 
 /* m_notice
@@ -1069,7 +996,6 @@ static void do_regcheck(char *msg)
 static void m_notice(char **parv, unsigned int parc, char *msg, struct UserInfo *source_p)
 {
 
-
    static regex_t *preg = NULL;
    regmatch_t pmatch[5];
 
@@ -1078,12 +1004,11 @@ static void m_notice(char **parv, unsigned int parc, char *msg, struct UserInfo 
 
    char *user[4];
 
-#ifdef notdef
    if(parc < 4)
       return;
 
    /* Not interested in notices from users */
-   if(source_p != NULL)
+   if((source_p != NULL) && (parv[2][0] != '#' && parv[2][0] != '&'))
       return;
 
    /* Compile the regular expression if it has not been already */
@@ -1105,7 +1030,6 @@ static void m_notice(char **parv, unsigned int parc, char *msg, struct UserInfo 
    }
 
    /* Match the expression against the possible connection notice */
-   log_printf("IRC REGEX -> Checking %s for match against regex", msg);
    if(regexec(preg, parv[3], 5, pmatch, 0) != 0)
       return;
 
@@ -1146,7 +1070,6 @@ static void m_notice(char **parv, unsigned int parc, char *msg, struct UserInfo 
    scan_connect(user, msg);
    /* Record the connect for stats purposes */
    stats_connect();
-#endif
 }
 
 /* m_userhost

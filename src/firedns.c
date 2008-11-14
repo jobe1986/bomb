@@ -46,7 +46,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "log.h"
 #include "dnsbl.h"
 
-RCSID("$Id$");
+RCSID("$Id: firedns.c,v 1.22 2005/06/03 12:58:12 dg Exp $");
 
 #define FIREDNS_TRIES 3
 #define min(a,b) (a < b ? a : b)
@@ -625,9 +625,11 @@ struct firedns_result *firedns_getresult(const int fd)
       goto cleanup;
    }
    h.ancount = ntohs(h.ancount);
-   if (h.ancount < 1)
+   if (h.ancount < 1) {
+      fdns_errno = FDNS_ERR_NXDOMAIN;
    /* no sense going on if we don't have any answers */
       goto cleanup;
+   }
    /* skip queries */
    i = 0;
    q = 0;

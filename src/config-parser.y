@@ -72,6 +72,7 @@ void *tmp;        /* Variable to temporarily hold nodes before insertion to list
 %token TARGET_IP
 %token TARGET_PORT
 %token TARGET_STRING
+%token TARGET_URL
 %token TIMEOUT
 %token TYPE
 %token USERNAME
@@ -365,6 +366,7 @@ scanner_entry:
 		item->fd = olditem->fd;
 		item->target_ip = DupString(olditem->target_ip);
 		item->target_port = olditem->target_port;
+		item->target_url = DupString(olditem->target_url);
 		item->timeout = olditem->timeout;
 		item->max_read = olditem->max_read;
 
@@ -377,6 +379,7 @@ scanner_entry:
       item->fd = 512;
       item->target_ip = DupString("127.0.0.1");
       item->target_port = 6667;
+      item->target_url = DupString("http://localhost/bopmcheck.txt");
       item->timeout = 30;
       item->max_read = 4096;
 		
@@ -401,6 +404,7 @@ scanner_item: scanner_name          |
               scanner_fd            |
               scanner_target_ip     |
               scanner_target_port   |
+              scanner_target_url    |
               scanner_target_string |
               scanner_protocol      |
               scanner_timeout       |
@@ -426,6 +430,13 @@ scanner_target_ip: TARGET_IP '=' STRING ';'
    struct ScannerConf *item = (struct ScannerConf *) tmp;
    MyFree(item->target_ip);
    item->target_ip = DupString($3);
+};
+
+scanner_target_url: TARGET_URL '=' STRING ';'
+{
+   struct ScannerConf *item = (struct ScannerConf *) tmp;
+   MyFree(item->target_url);
+   item->target_url = DupString($3);
 };
 
 scanner_target_string: TARGET_STRING '=' STRING ';'
