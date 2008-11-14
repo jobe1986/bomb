@@ -1,0 +1,6 @@
+Revision history for Perl extension OPM.
+
+0.01  Sun Sep 22 01:46:37 2002
+	- original version; created by h2xs 1.21 with options
+		-O -n OPM cvs/libopm/src/opm_types.h cvs/libopm/src/opm_error.h
+

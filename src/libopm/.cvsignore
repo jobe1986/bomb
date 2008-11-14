@@ -1,0 +1,9 @@
+Makefile
+autom4te-*
+config.log
+config.status
+libtool
+*.sw[op]
+stamp-h*
+autom4te.cache
+libtool
