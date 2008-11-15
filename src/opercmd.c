@@ -54,19 +54,23 @@ static void command_free(struct Command *);
 static void cmd_check(char *, char *, struct ChannelConf *);
 static void cmd_stat(char *, char *, struct ChannelConf *);
 static void cmd_fdstat(char *, char *, struct ChannelConf *);
+static void cmd_die(char *, char *, struct ChannelConf *);
+static void cmd_restart(char *, char *, struct ChannelConf *);
 #if 0
 static void cmd_op(char *, char *, struct ChannelConf *);
 #endif
 
 static struct OperCommandHash COMMAND_TABLE[] =
    {
-      {"CHECK",  cmd_check  },
-      {"SCAN",   cmd_check  },
-      {"STAT",   cmd_stat   },
-      {"STATS",  cmd_stat   },
-      {"STATUS", cmd_stat   },
-      {"FDSTAT", cmd_fdstat },
-/*    {"OP",     cmd_op     } */
+      {"CHECK",   cmd_check   },
+      {"SCAN",    cmd_check   },
+      {"STAT",    cmd_stat    },
+      {"STATS",   cmd_stat    },
+      {"STATUS",  cmd_stat    },
+      {"FDSTAT",  cmd_fdstat  },
+      {"DIE",     cmd_die     },
+      {"RESTART", cmd_restart },
+/*    {"OP",      cmd_op      } */
    };
 
 
@@ -389,6 +393,55 @@ static void cmd_fdstat(char *param, char *source, struct ChannelConf *target)
 
    fdstats_output(target->name);
 }
+
+
+
+/* cmd_die
+ *
+ *   Shuts down the bot
+ *
+ * Parameters:
+ *    param: Parameters of the command
+ *    source: irc_nick of user who requested the command
+ *    target: channel command was sent to
+ */
+
+static void cmd_die(char *param, char *source, struct ChannelConf *target)
+{
+   USE_VAR(param);
+   USE_VAR(source);
+
+   irc_send("QUIT :Shutting down (%s)", source);
+
+   log_printf("MAIN -> Shutting down");
+
+   exit(0);
+}
+
+
+
+/* cmd_restart
+ *
+ *   Restarts the bot
+ *
+ * Parameters:
+ *    param: Parameters of the command
+ *    source: irc_nick of user who requested the command
+ *    target: channel command was sent to
+ */
+
+static void cmd_restart(char *param, char *source, struct ChannelConf *target)
+{
+   USE_VAR(param);
+   USE_VAR(source);
+
+   main_restart();
+
+   irc_send("QUIT :Restarting (%s)", source);
+
+   log_printf("MAIN -> Restarting");
+}
+
 
 
 /* cmd_op
