@@ -16,6 +16,11 @@ struct scan_struct
    unsigned short scans;
    unsigned short positive;
 
+   unsigned short dnsbl_whitelisted;
+   unsigned short dnsbl_whitelist_count;
+   unsigned char dnsbl_positive_type;
+   struct BlacklistConf *dnsbl_positive_bl;
+
    struct ChannelConf *manual_target;
 };
 

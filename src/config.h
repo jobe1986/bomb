@@ -105,7 +105,9 @@ struct BlacklistConf
    char   *name;
    char   *kline;
    enum BlacklistType type;
+   int     whitelist;
    int     ban_unknown;
+   int     alert;
    list_t *reply;
    unsigned int stats_recv;
 };

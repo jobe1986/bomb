@@ -92,6 +92,7 @@ whitespace             [ \t\r]*
              
                         }
 
+ALERT                   { return ALERT;        }
 AWAY                    { return AWAY;         }
 BAN_UNKNOWN             { return BAN_UNKNOWN;  }
 BLACKLIST               { return BLACKLIST;    }
@@ -136,6 +137,7 @@ TYPE                    { return TYPE;         }
 USER                    { return USER;         }
 USERNAME                { return USERNAME;     }
 VHOST                   { return VHOST;        }
+WHITELIST               { return WHITELIST;    }
 
 
 HTTP                    {

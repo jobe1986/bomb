@@ -99,10 +99,20 @@ void dnsbl_add(struct scan_struct *ss)
          log_printf("DNSBL -> Error sending dns lookup for '%s': %s", lookup, firedns_strerror(fdns_errno));
          free(ds);
       }
-      else
+      else {
          ss->scans++; /* Increase scan count - one for each blacklist */
+         if (bl->whitelist)
+            ss->dnsbl_whitelist_count++;  /* Increase whitelist count
+                                           * for each whitelist */
+      }
    }
 }
+
+/* This function gets called when:
+ * - a positive result was obtained from a blacklist
+ * - the last result from the whitelist has been received,
+ *   and a previous blacklist result was positive
+ */
 
 static void dnsbl_positive(struct scan_struct *ss, struct BlacklistConf *bl, 
 		unsigned char type)
@@ -145,36 +155,59 @@ static void dnsbl_positive(struct scan_struct *ss, struct BlacklistConf *bl,
    if(text_type[0] == '\0' && bl->ban_unknown == 0)
    {
       if(OPT_DEBUG)
-         log_printf("DNSBL -> Unknown result from BL zone %s (%d)", bl->name, type);
+         log_printf("DNSBL -> Unknown result from %s zone %s (%d)",
+               (bl->whitelist ? "WL" : "BL"), bl->name, type);
       return;
-   }
-
-   if(ss->manual_target)
-   {
-      irc_send("PRIVMSG %s :CHECK -> DNSBL -> %s appears in BL zone %s (%s)",
-            ss->manual_target->name, ss->ip, bl->name, text_type);
-   }
-   else if(!ss->positive)
-   {
-      /* Only report it if no other scans have found positives yet. */
-      scan_positive(ss, (bl->kline[0] ? bl->kline : IRCItem->kline),
-            text_type);
-
-      irc_send_channels("DNSBL -> %s!%s@%s appears in BL zone %s (%s)",
-            ss->irc_nick, ss->irc_username, ss->irc_hostname, bl->name,
-            text_type);
-      log_printf("DNSBL -> %s!%s@%s appears in BL zone %s (%s)",
-            ss->irc_nick, ss->irc_username, ss->irc_hostname, bl->name,
-            text_type);
    }
 
    /* record stat */
    stats_dnsblrecv(bl);
+
+   /* If this was a positive result from a whitelist, flag this user
+    * as whitelisted in the scan struct. This will prevent any future
+    * positive DNSBL blacklist result from klining.
+    */
+   if(bl->whitelist)
+      ss->dnsbl_whitelisted = 1; /* Mark this user as whitelisted */
+   else if(ss->dnsbl_whitelist_count > 0) /* Store data */
+   {
+      ss->dnsbl_positive_bl = bl;
+      ss->dnsbl_positive_type = type;
+      return;     /* Wait until whitelists have finished */
+   }
+
+   if(ss->manual_target)
+   {
+      irc_send("PRIVMSG %s :CHECK -> DNSBL -> %s appears in %s zone %s (%s)",
+         ss->manual_target->name, ss->ip, (bl->whitelist ? "WL" : "BL"),
+         bl->name, text_type);
+   }
+   else if(!ss->positive)
+   {
+      /* Only report it if no other scans have found positives yet,
+       * all whitelists are done, and the user has not been whitelisted. */
+      if(ss->dnsbl_whitelist_count == 0 && !ss->dnsbl_whitelisted)
+      {
+         scan_positive(ss, (bl->kline[0] ? bl->kline : IRCItem->kline), text_type);
+
+         if(bl->alert)
+            irc_send_channels("DNSBL -> %s!%s@%s appears in %s zone %s (%s)",
+                  ss->irc_nick, ss->irc_username, ss->irc_hostname,
+                  (bl->whitelist ? "WL" : "BL"), bl->name, text_type);
+      }
+
+      log_printf("DNSBL -> %s!%s@%s appears in %s zone %s (%s)",
+            ss->irc_nick, ss->irc_username, ss->irc_hostname,
+            (bl->whitelist ? "WL" : "BL"), bl->name, text_type);
+   }
 }
 
 void dnsbl_result(struct firedns_result *res)
 {
 	struct dnsbl_scan *ds = res->info;
+
+   if(ds->bl->whitelist)
+      ds->ss->dnsbl_whitelist_count--; /* one less whitelist to wait for */
 
    if(OPT_DEBUG)
       log_printf("DNSBL -> Lookup result for %s!%s@%s (%s) %d.%d.%d.%d (error: %d)",
@@ -190,9 +223,15 @@ void dnsbl_result(struct firedns_result *res)
    /* Everything is OK */
    if(res->text[0] == '\0' && fdns_errno == FDNS_ERR_NXDOMAIN)
    {
+      /* If any previous positive blacklist result was blocked, waiting
+       * for whitelists, handle it now
+       */
+      if(ds->bl->whitelist && ds->ss->dnsbl_whitelist_count == 0 && ds->ss->dnsbl_positive_bl != NULL)
+         dnsbl_positive(ds->ss, ds->ss->dnsbl_positive_bl, ds->ss->dnsbl_positive_type);
+
       if(ds->ss->manual_target != NULL)
-         irc_send("PRIVMSG %s :CHECK -> DNSBL -> %s does not appear in BL zone %s", 
-                   ds->ss->manual_target->name, ds->ss->ip,
+         irc_send("PRIVMSG %s :CHECK -> DNSBL -> %s does not appear in %s zone %s",
+                   ds->ss->manual_target->name, ds->ss->ip, (ds->bl->whitelist ? "WL" : "BL"),
                     (strlen(ds->ss->ip) < strlen(res->lookup))
 						   ? (res->lookup + strlen(ds->ss->ip) + 1)
 							: res->lookup);
@@ -210,6 +249,12 @@ void dnsbl_result(struct firedns_result *res)
       dnsbl_positive(ds->ss, ds->bl, (unsigned char)res->text[3]);
    else
 	{
+      /* If any previous positive blacklist result was blocked, waiting
+       * for whitelists, handle it now
+       */
+      if(ds->bl->whitelist && ds->ss->dnsbl_whitelist_count == 0 && ds->ss->dnsbl_positive_bl != NULL)
+         dnsbl_positive(ds->ss, ds->ss->dnsbl_positive_bl, ds->ss->dnsbl_positive_type);
+
       log_printf("DNSBL -> Lookup error on %s: %s", res->lookup,
 	      firedns_strerror(fdns_errno));
 		if(fdns_errno != FDNS_ERR_TIMEOUT)

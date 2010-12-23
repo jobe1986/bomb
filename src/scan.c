@@ -485,6 +485,11 @@ struct scan_struct *scan_create(char **user, char *msg)
    ss->scans = 0;
    ss->positive = 0;
 
+   ss->dnsbl_whitelist_count = 0;
+   ss->dnsbl_whitelisted = 0;
+   ss->dnsbl_positive_bl = NULL;
+   ss->dnsbl_positive_type = '\0';
+
    ss->manual_target = NULL;
 
    assert(ss->remote);

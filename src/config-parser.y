@@ -33,6 +33,7 @@ void *tmp;        /* Variable to temporarily hold nodes before insertion to list
 
 %}
 
+%token ALERT
 %token AWAY
 %token BAN_UNKNOWN
 %token BLACKLIST
@@ -78,6 +79,7 @@ void *tmp;        /* Variable to temporarily hold nodes before insertion to list
 %token USERNAME
 %token USER
 %token VHOST
+%token WHITELIST
 
 %union 
 {
@@ -540,6 +542,8 @@ opm_blacklist_entry:
    item->name = DupString("");
    item->kline = DupString("");
    item->ban_unknown = 0;
+   item->whitelist = 0;
+   item->alert = 1;
    item->type = A_BITMASK;
    item->reply = list_create();
 
@@ -556,8 +560,10 @@ blacklist_items: /* Empty */                 |
 
 blacklist_item: blacklist_name        |
                 blacklist_type        |
+                blacklist_whitelist   |
                 blacklist_kline       |
                 blacklist_ban_unknown |
+                blacklist_alert       |
                 blacklist_reply       |
                 error;
 
@@ -584,6 +590,18 @@ blacklist_type: TYPE '=' STRING ';' {
       item->type = A_REPLY;
    else
       yyerror("Unknown blacklist type defined");
+};
+
+blacklist_whitelist: WHITELIST '=' NUMBER ';' {
+   struct BlacklistConf *item = tmp;
+
+   item->whitelist = $3;
+};
+
+blacklist_alert: ALERT '=' NUMBER ';' {
+    struct BlacklistConf *item = tmp;
+
+    item->alert = $3;
 };
 
 blacklist_ban_unknown: BAN_UNKNOWN '=' NUMBER ';' {
